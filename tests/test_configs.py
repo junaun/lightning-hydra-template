@@ -1,37 +1,25 @@
 import hydra
+import pytest
 from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig
 
 
-def test_train_config(cfg_train: DictConfig) -> None:
-    """Tests the training configuration provided by the `cfg_train` pytest fixture.
+@pytest.mark.parametrize("cfg_name", ["cfg_train", "cfg_train_seg", "cfg_eval"])
+def test_configs(cfg_name: str, request: pytest.FixtureRequest) -> None:
+    """Tests that the training (classification, segmentation) and evaluation configurations can
+    be instantiated.
 
-    :param cfg_train: A DictConfig containing a valid training configuration.
+    :param cfg_name: The name of the config fixture.
+    :param request: The pytest request object, used to get the config fixture.
     """
-    assert cfg_train
-    assert cfg_train.data
-    assert cfg_train.model
-    assert cfg_train.trainer
+    cfg: DictConfig = request.getfixturevalue(cfg_name)
+    assert cfg
+    assert cfg.data
+    assert cfg.model
+    assert cfg.trainer
 
-    HydraConfig().set_config(cfg_train)
+    HydraConfig().set_config(cfg)
 
-    hydra.utils.instantiate(cfg_train.data)
-    hydra.utils.instantiate(cfg_train.model)
-    hydra.utils.instantiate(cfg_train.trainer)
-
-
-def test_eval_config(cfg_eval: DictConfig) -> None:
-    """Tests the evaluation configuration provided by the `cfg_eval` pytest fixture.
-
-    :param cfg_train: A DictConfig containing a valid evaluation configuration.
-    """
-    assert cfg_eval
-    assert cfg_eval.data
-    assert cfg_eval.model
-    assert cfg_eval.trainer
-
-    HydraConfig().set_config(cfg_eval)
-
-    hydra.utils.instantiate(cfg_eval.data)
-    hydra.utils.instantiate(cfg_eval.model)
-    hydra.utils.instantiate(cfg_eval.trainer)
+    hydra.utils.instantiate(cfg.data)
+    hydra.utils.instantiate(cfg.model)
+    hydra.utils.instantiate(cfg.trainer)
