@@ -1,0 +1,23 @@
+defaults:
+  - net: timm # network, see `configs/model/net/`
+  - _self_
+
+_target_: src.models.classification_module.ClassificationLitModule
+
+num_classes: ${data.num_classes}
+label_smoothing: 0.0
+
+optimizer:
+  _target_: torch.optim.AdamW
+  _partial_: true
+  lr: 0.001
+  weight_decay: 0.05
+
+scheduler:
+  _target_: torch.optim.lr_scheduler.CosineAnnealingLR
+  _partial_: true
+  T_max: ${trainer.max_epochs}
+  eta_min: 1.0e-6
+
+# compile model for faster training with pytorch 2.0
+compile: false

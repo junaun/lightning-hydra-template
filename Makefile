@@ -26,5 +26,11 @@ test: ## Run not slow tests
 test-full: ## Run all tests
 	pytest
 
+data: ## Download the datasets of the example experiments
+	python scripts/download_example_data.py
+
 train: ## Train the model
 	python src/train.py
+
+tune: ## Run hyperparameter search with Optuna
+	python src/tune.py

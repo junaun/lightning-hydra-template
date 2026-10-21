@@ -1,0 +1,65 @@
+# @package _global_
+
+# hyperparameter search with Optuna on top of the training config
+# every trial runs `train()` with sampled values in `<output_dir>/trials/<number>/`
+#
+# example:
+# python src/tune.py experiment=classification_example optuna.n_trials=20
+#
+# only config values can be searched (e.g. `model.optimizer.lr`),
+# not config group choices (e.g. `model=...`)
+
+defaults:
+  - train
+  - _self_
+
+task_name: "tune"
+
+# metric logged in the lightning module which is optimized
+# e.g. "val/miou_best" for segmentation
+optimized_metric: "val/acc_best"
+
+# skip testing in every trial, evaluate the best trial afterwards with `src/eval.py`
+test: False
+
+optuna:
+  # set a storage to persist the study and resume it later, e.g. "sqlite:///logs/optuna.db"
+  storage: null
+  study_name: null
+
+  # "minimize" or "maximize" the objective
+  direction: maximize
+
+  # number of trials and/or time budget in seconds
+  n_trials: 20
+  timeout: null
+
+  # docs: https://optuna.readthedocs.io/en/stable/reference/samplers/index.html
+  sampler:
+    _target_: optuna.samplers.TPESampler
+    seed: 1234
+    n_startup_trials: 10 # number of random sampling runs before optimization starts
+
+  # docs: https://optuna.readthedocs.io/en/stable/reference/pruners.html
+  pruner: null
+
+  # search space: <name>: {key: <config key to override>, type: ..., ...}
+  # types: float/int with `low`, `high` (and optional `log`, `step`), categorical with `choices`
+  # change from command line by name, e.g. `optuna.params.lr.high=0.1` or `~optuna.params.batch_size`
+  params:
+    lr:
+      key: model.optimizer.lr
+      type: float
+      low: 1.0e-5
+      high: 1.0e-2
+      log: true
+    weight_decay:
+      key: model.optimizer.weight_decay
+      type: float
+      low: 1.0e-4
+      high: 1.0e-1
+      log: true
+    batch_size:
+      key: data.batch_size
+      type: categorical
+      choices: [32, 64, 128]

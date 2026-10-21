@@ -1,0 +1,24 @@
+defaults:
+  - net: smp_unet # network, see `configs/model/net/`
+  - _self_
+
+_target_: src.models.segmentation_module.SegmentationLitModule
+
+num_classes: ${data.num_classes}
+ignore_index: ${data.ignore_index}
+dice_weight: 1.0 # loss = cross-entropy + dice_weight * dice
+
+optimizer:
+  _target_: torch.optim.AdamW
+  _partial_: true
+  lr: 0.0003
+  weight_decay: 0.01
+
+scheduler:
+  _target_: torch.optim.lr_scheduler.CosineAnnealingLR
+  _partial_: true
+  T_max: ${trainer.max_epochs}
+  eta_min: 1.0e-6
+
+# compile model for faster training with pytorch 2.0
+compile: false

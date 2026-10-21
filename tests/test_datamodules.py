@@ -1,38 +1,71 @@
 from pathlib import Path
 
+import hydra
 import pytest
 import torch
+from omegaconf import DictConfig
 
-from src.data.mnist_datamodule import MNISTDataModule
+from tests.conftest import NUM_CLASSES
 
 
-@pytest.mark.parametrize("batch_size", [32, 128])
-def test_mnist_datamodule(batch_size: int) -> None:
-    """Tests `MNISTDataModule` to verify that it can be downloaded correctly, that the necessary
-    attributes were created (e.g., the dataloader objects), and that dtypes and batch sizes
-    correctly match.
+@pytest.mark.parametrize("batch_size", [2, 4])
+def test_image_folder_datamodule(cfg_train: DictConfig, batch_size: int) -> None:
+    """Tests `ImageFolderDataModule`: splits, dataloaders, and dtypes/shapes of a batch.
 
+    :param cfg_train: A DictConfig containing a valid training configuration.
     :param batch_size: Batch size of the data to be loaded by the dataloader.
     """
-    data_dir = "data/"
-
-    dm = MNISTDataModule(data_dir=data_dir, batch_size=batch_size)
-    dm.prepare_data()
-
-    assert not dm.data_train and not dm.data_val and not dm.data_test
-    assert Path(data_dir, "MNIST").exists()
-    assert Path(data_dir, "MNIST", "raw").exists()
-
+    cfg_train.data.batch_size = batch_size
+    dm = hydra.utils.instantiate(cfg_train.data)
     dm.setup()
-    assert dm.data_train and dm.data_val and dm.data_test
-    assert dm.train_dataloader() and dm.val_dataloader() and dm.test_dataloader()
 
-    num_datapoints = len(dm.data_train) + len(dm.data_val) + len(dm.data_test)
-    assert num_datapoints == 70_000
+    assert dm.class_names == [f"class_{i}" for i in range(NUM_CLASSES)]
+    assert len(dm.data_train) == 8 * NUM_CLASSES
+    assert len(dm.data_val) == 4 * NUM_CLASSES
+    assert dm.data_test is dm.data_val  # no test_subdir
 
-    batch = next(iter(dm.train_dataloader()))
-    x, y = batch
-    assert len(x) == batch_size
-    assert len(y) == batch_size
+    x, y = next(iter(dm.train_dataloader()))
+    assert x.shape == (batch_size, 3, 32, 32)
     assert x.dtype == torch.float32
     assert y.dtype == torch.int64
+
+
+def test_image_folder_datamodule_val_split(cfg_train: DictConfig) -> None:
+    """Tests that the validation set is split from the train set if `val_subdir` is None."""
+    cfg_train.data.val_subdir = None
+    cfg_train.data.val_split = 0.25
+    dm = hydra.utils.instantiate(cfg_train.data)
+    dm.setup()
+
+    assert len(dm.data_train) + len(dm.data_val) == 8 * NUM_CLASSES
+    assert len(dm.data_val) == 6
+    assert not set(dm.data_train.indices) & set(dm.data_val.indices)
+
+
+def test_image_folder_datamodule_num_classes(cfg_train: DictConfig) -> None:
+    """Tests that a wrong `num_classes` is reported."""
+    cfg_train.data.num_classes = NUM_CLASSES + 1
+    dm = hydra.utils.instantiate(cfg_train.data)
+    with pytest.raises(ValueError, match="classes"):
+        dm.setup()
+
+
+def test_segmentation_folder_datamodule(cfg_train_seg: DictConfig, seg_data_dir: Path) -> None:
+    """Tests `SegmentationFolderDataModule`: splits, and dtypes/shapes/values of a batch.
+
+    :param cfg_train_seg: A DictConfig containing a valid segmentation training configuration.
+    :param seg_data_dir: The synthetic segmentation dataset.
+    """
+    dm = hydra.utils.instantiate(cfg_train_seg.data)
+    dm.setup()
+
+    num_samples = len(list((seg_data_dir / "images").glob("*.jpg")))
+    assert len(dm.data_train) + len(dm.data_val) + len(dm.data_test) == num_samples
+    assert len(dm.data_val) == len(dm.data_test) == 2
+
+    x, y = next(iter(dm.train_dataloader()))
+    assert x.shape == (4, 3, 32, 32)
+    assert x.dtype == torch.float32
+    assert y.shape == (4, 32, 32)
+    assert y.dtype == torch.int64
+    assert set(y.unique().tolist()) <= set(range(NUM_CLASSES))

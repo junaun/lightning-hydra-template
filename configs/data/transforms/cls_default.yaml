@@ -1,0 +1,47 @@
+# albumentations pipeline, built by `src/data/components/transforms.py:build_transforms()`
+#
+# `train.ops` / `eval.ops` are applied in order, `post` is always appended at the end
+# every op is a mapping entry, so it can be changed from the command line by name:
+#   remove: `~data.transforms.train.ops.color`  (or `data.transforms.train.ops.color=null`)
+#   add:    `+data.transforms.train.ops.blur="{_target_: albumentations.GaussianBlur, p: 0.2}"`
+#   tweak:  `data.transforms.train.ops.crop.scale="[0.5,1.0]"`
+#   preset: `data/transforms=cls_strong`
+# available ops: https://albumentations.ai/docs/reference/supported-targets-by-transform/
+
+image_size: 224
+
+train:
+  ops:
+    crop:
+      _target_: albumentations.RandomResizedCrop
+      size: ["${data.transforms.image_size}", "${data.transforms.image_size}"]
+      scale: [0.35, 1.0]
+    hflip:
+      _target_: albumentations.HorizontalFlip
+      p: 0.5
+    color:
+      _target_: albumentations.ColorJitter
+      brightness: 0.2
+      contrast: 0.2
+      saturation: 0.2
+      hue: 0.05
+      p: 0.5
+
+eval:
+  ops:
+    resize:
+      _target_: albumentations.SmallestMaxSize
+      max_size: ${data.transforms.image_size}
+    crop:
+      _target_: albumentations.CenterCrop
+      height: ${data.transforms.image_size}
+      width: ${data.transforms.image_size}
+
+post:
+  normalize:
+    _target_: albumentations.Normalize # imagenet statistics by default
+  to_tensor:
+    _target_: albumentations.pytorch.ToTensorV2
+
+# optional kwargs for `albumentations.Compose`, e.g. `additional_targets` or `bbox_params`
+compose: {}

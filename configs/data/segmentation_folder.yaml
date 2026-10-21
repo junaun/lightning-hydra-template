@@ -1,0 +1,26 @@
+# semantic segmentation from an image folder and a mask folder, paired by filename stem:
+# data_dir/<image_subdir>/<stem>.jpg <-> data_dir/<mask_subdir>/<stem>.png
+
+defaults:
+  - transforms: seg_default # augmentation pipeline, see `configs/data/transforms/`
+  - _self_
+
+_target_: src.data.segmentation_folder_datamodule.SegmentationFolderDataModule
+_recursive_: false # transforms are built inside the datamodule, see `build_transforms()`
+
+data_dir: ${paths.data_dir}/oxford-iiit-pet # run `python scripts/download_example_data.py`
+num_classes: 3
+image_subdir: images
+mask_subdir: annotations/trimaps
+image_glob: "*.jpg"
+mask_suffix: .png
+mask_offset: -1 # oxford pet trimaps are 1-based (1: pet, 2: background, 3: border)
+ignore_index: 255
+val_split: 0.1
+test_split: 0.1
+seed: 42
+
+batch_size: 16 # Needs to be divisible by the number of devices (e.g., if in a distributed setup)
+num_workers: 4
+pin_memory: False
+persistent_workers: False

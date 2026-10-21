@@ -2,12 +2,12 @@
 
 # Lightning-Hydra-Template
 
-[![python](https://img.shields.io/badge/-Python_3.8_%7C_3.9_%7C_3.10-blue?logo=python&logoColor=white)](https://github.com/pre-commit/pre-commit)
-[![pytorch](https://img.shields.io/badge/PyTorch_2.0+-ee4c2c?logo=pytorch&logoColor=white)](https://pytorch.org/get-started/locally/)
-[![lightning](https://img.shields.io/badge/-Lightning_2.0+-792ee5?logo=pytorchlightning&logoColor=white)](https://pytorchlightning.ai/)
+[![python](https://img.shields.io/badge/-Python_3.12_%7C_3.13-blue?logo=python&logoColor=white)](https://www.python.org/)
+[![pytorch](https://img.shields.io/badge/PyTorch_2.6+-ee4c2c?logo=pytorch&logoColor=white)](https://pytorch.org/get-started/locally/)
+[![lightning](https://img.shields.io/badge/-Lightning_2.5+-792ee5?logo=lightning&logoColor=white)](https://lightning.ai/docs/pytorch/stable/)
 [![hydra](https://img.shields.io/badge/Config-Hydra_1.3-89b8cd)](https://hydra.cc/)
-[![black](https://img.shields.io/badge/Code%20Style-Black-black.svg?labelColor=gray)](https://black.readthedocs.io/en/stable/)
-[![isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/) <br>
+[![optuna](https://img.shields.io/badge/HPO-Optuna_4+-2f6fbb)](https://optuna.org/)
+[![ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff) <br>
 [![tests](https://github.com/ashleve/lightning-hydra-template/actions/workflows/test.yml/badge.svg)](https://github.com/ashleve/lightning-hydra-template/actions/workflows/test.yml)
 [![code-quality](https://github.com/ashleve/lightning-hydra-template/actions/workflows/code-quality-main.yaml/badge.svg)](https://github.com/ashleve/lightning-hydra-template/actions/workflows/code-quality-main.yaml)
 [![codecov](https://codecov.io/gh/ashleve/lightning-hydra-template/branch/main/graph/badge.svg)](https://codecov.io/gh/ashleve/lightning-hydra-template) <br>
@@ -16,6 +16,7 @@
 [![contributors](https://img.shields.io/github/contributors/ashleve/lightning-hydra-template.svg)](https://github.com/ashleve/lightning-hydra-template/graphs/contributors)
 
 A clean template to kickstart your deep learning project 🚀⚡🔥<br>
+_Updated fork of [ashleve/lightning-hydra-template](https://github.com/ashleve/lightning-hydra-template) for 2026, with computer vision building blocks (timm classification, segmentation_models_pytorch segmentation, config-driven albumentations) and Optuna hyperparameter search._<br>
 Click on [<kbd>Use this template</kbd>](https://github.com/ashleve/lightning-hydra-template/generate) to initialize new repository.
 
 _Suggestions are always welcome!_
@@ -61,6 +62,12 @@ For example, you can't resume hydra-based multirun or hyperparameter search.
 
 [Hydra](https://github.com/facebookresearch/hydra) - a framework for elegantly configuring complex applications. The key feature is the ability to dynamically create a hierarchical configuration by composition and override it through config files and the command line.
 
+[timm](https://github.com/huggingface/pytorch-image-models) and [segmentation_models_pytorch](https://github.com/qubvel-org/segmentation_models.pytorch) - pretrained image classification backbones and segmentation architectures, selected from config.
+
+[Albumentations](https://github.com/albumentations-team/albumentations) - fast image augmentation, applied jointly to images and masks. The whole pipeline is defined in config, see [Augmentations](#augmentations).
+
+[Optuna](https://github.com/optuna/optuna) - hyperparameter optimization, see [Hyperparameter Search](#hyperparameter-search).
+
 <br>
 
 ## Main Ideas
@@ -70,9 +77,10 @@ For example, you can't resume hydra-based multirun or hyperparameter search.
 - [**Main Configs**](#main-config): allow you to specify default training configuration
 - [**Experiment Configs**](#experiment-config): allow you to override chosen hyperparameters and version control experiments
 - [**Workflow**](#workflow): comes down to 4 simple steps
-- [**Experiment Tracking**](#experiment-tracking): Tensorboard, W&B, Neptune, Comet, MLFlow and CSVLogger
+- [**Augmentations**](#augmentations): albumentations pipelines fully controlled from config and command line
+- [**Experiment Tracking**](#experiment-tracking): Tensorboard, W&B, Comet, MLFlow and CSVLogger
 - [**Logs**](#logs): all logs (checkpoints, configs, etc.) are stored in a dynamically generated folder structure
-- [**Hyperparameter Search**](#hyperparameter-search): simple search is effortless with Hydra plugins like Optuna Sweeper
+- [**Hyperparameter Search**](#hyperparameter-search): Optuna search over any config value with `src/tune.py`
 - [**Tests**](#tests): generic, easy-to-adapt smoke tests for speeding up the development
 - [**Continuous Integration**](#continuous-integration): automatically test and lint your repo with Github Actions
 - [**Best Practices**](#best-practices): a couple of recommended tools, practices and standards
@@ -89,19 +97,21 @@ The directory structure of new project looks like this:
 ├── configs                   <- Hydra configs
 │   ├── callbacks                <- Callbacks configs
 │   ├── data                     <- Data configs
+│   │   └── transforms               <- Augmentation pipelines (albumentations)
 │   ├── debug                    <- Debugging configs
 │   ├── experiment               <- Experiment configs
 │   ├── extras                   <- Extra utilities configs
-│   ├── hparams_search           <- Hyperparameter search configs
 │   ├── hydra                    <- Hydra configs
 │   ├── local                    <- Local configs
 │   ├── logger                   <- Logger configs
 │   ├── model                    <- Model configs
+│   │   └── net                      <- Network configs (timm, segmentation_models_pytorch)
 │   ├── paths                    <- Project paths configs
 │   ├── trainer                  <- Trainer configs
 │   │
 │   ├── eval.yaml             <- Main config for evaluation
-│   └── train.yaml            <- Main config for training
+│   ├── train.yaml            <- Main config for training
+│   └── tune.yaml             <- Main config for hyperparameter search
 │
 ├── data                   <- Project data
 │
@@ -111,7 +121,7 @@ The directory structure of new project looks like this:
 │                             the creator's initials, and a short `-` delimited description,
 │                             e.g. `1.0-jqp-initial-data-exploration.ipynb`.
 │
-├── scripts                <- Shell scripts
+├── scripts                <- Shell scripts and helpers, e.g. downloading the example data
 │
 ├── src                    <- Source code
 │   ├── data                     <- Data scripts
@@ -119,7 +129,8 @@ The directory structure of new project looks like this:
 │   ├── utils                    <- Utility scripts
 │   │
 │   ├── eval.py                  <- Run evaluation
-│   └── train.py                 <- Run training
+│   ├── train.py                 <- Run training
+│   └── tune.py                  <- Run hyperparameter search
 │
 ├── tests                  <- Tests of any kind
 │
@@ -129,9 +140,8 @@ The directory structure of new project looks like this:
 ├── .project-root             <- File for inferring the position of project root directory
 ├── environment.yaml          <- File for installing conda environment
 ├── Makefile                  <- Makefile with commands like `make train` or `make test`
-├── pyproject.toml            <- Configuration options for testing and linting
+├── pyproject.toml            <- Package metadata and configuration of testing and linting
 ├── requirements.txt          <- File for installing python dependencies
-├── setup.py                  <- File for installing project as a package
 └── README.md
 ```
 
@@ -144,18 +154,28 @@ The directory structure of new project looks like this:
 git clone https://github.com/ashleve/lightning-hydra-template
 cd lightning-hydra-template
 
-# [OPTIONAL] create conda environment
-conda create -n myenv python=3.9
-conda activate myenv
+# create conda environment (python from conda, packages from pip)
+conda env create -f environment.yaml
+conda activate lht
 
-# install pytorch according to instructions
-# https://pytorch.org/get-started/
-
-# install requirements
+# or, in any existing python>=3.12 environment
 pip install -r requirements.txt
+
+# [OPTIONAL] install the project as a package (adds `train_command`, `eval_command`, `tune_command`)
+pip install -e .
+
+# download the datasets of the example experiments (~1 GB)
+python scripts/download_example_data.py
 ```
 
-Template contains example with MNIST classification.<br>
+> **Note**: default PyPI pytorch wheels on linux ship with CUDA (13.0 for torch 2.14, which supports Blackwell GPUs). To install a different CUDA build, uncomment the `--extra-index-url` line in `environment.yaml` or pass it to `pip install -r requirements.txt`, see [pytorch.org/get-started](https://pytorch.org/get-started/locally/).
+
+Template contains two minimal, customizable examples:
+
+- **classification**: Imagenette with a pretrained [timm](https://github.com/huggingface/pytorch-image-models) resnet18 (`python src/train.py experiment=classification_example trainer=gpu`)
+- **segmentation**: Oxford-IIIT Pet trimaps with a [segmentation_models_pytorch](https://github.com/qubvel-org/segmentation_models.pytorch) Unet (`python src/train.py experiment=segmentation_example trainer=gpu`)
+
+See [Adapting To Your Project](#adapting-to-your-project) for how to use them on your own data.<br>
 When running `python src/train.py` you should see something like this:
 
 <div align="center">
@@ -216,7 +236,8 @@ python train.py trainer=mps
 
 ```bash
 # train with pytorch native automatic mixed precision (AMP)
-python train.py trainer=gpu +trainer.precision=16
+# (`trainer=gpu` already uses "bf16-mixed")
+python train.py trainer=gpu trainer.precision=16-mixed
 ```
 
 </details>
@@ -372,14 +393,43 @@ python train.py -m data.batch_size=32,64,128 model.lr=0.001,0.0005
 <summary><b>Create a sweep over hyperparameters with Optuna</b></summary>
 
 ```bash
-# this will run hyperparameter search defined in `configs/hparams_search/mnist_optuna.yaml`
+# this will run hyperparameter search defined in `configs/tune.yaml`
 # over chosen experiment config
-python train.py -m hparams_search=mnist_optuna experiment=example
+python src/tune.py experiment=classification_example optuna.n_trials=20
 ```
 
-> **Note**: Using [Optuna Sweeper](https://hydra.cc/docs/next/plugins/optuna_sweeper) doesn't require you to add any boilerplate to your code, everything is defined in a [single config file](configs/hparams_search/mnist_optuna.yaml).
+> **Note**: The search space is defined in a [single config file](configs/tune.yaml), see [Hyperparameter Search](#hyperparameter-search).
 
-> **Warning**: Optuna sweeps are not failure-resistant (if one job crashes then the whole sweep crashes).
+</details>
+
+<details>
+<summary><b>Change augmentations</b></summary>
+
+```bash
+# pick an augmentation preset from `configs/data/transforms/`
+python train.py data/transforms=cls_strong
+
+# remove, add or tweak single albumentations ops by name
+python train.py '~data.transforms.train.ops.color' \
+  '+data.transforms.train.ops.blur={_target_: albumentations.GaussianBlur, p: 0.2}' \
+  'data.transforms.train.ops.crop.scale=[0.5,1.0]'
+```
+
+> **Note**: See [Augmentations](#augmentations).
+
+</details>
+
+<details>
+<summary><b>Swap backbone or architecture</b></summary>
+
+```bash
+# any timm model for classification
+python train.py model.net.model_name=convnext_tiny
+
+# any segmentation_models_pytorch architecture/encoder for segmentation
+python train.py experiment=segmentation_example \
+  model.net._target_=segmentation_models_pytorch.FPN model.net.encoder_name=efficientnet-b0
+```
 
 </details>
 
@@ -465,10 +515,10 @@ pytest -k "not slow"
 Each experiment should be tagged in order to easily filter them across files or in logger UI:
 
 ```bash
-python train.py tags=["mnist","experiment_X"]
+python train.py tags=["imagenette","experiment_X"]
 ```
 
-> **Note**: You might need to escape the bracket characters in your shell with `python train.py tags=\["mnist","experiment_X"\]`.
+> **Note**: You might need to escape the bracket characters in your shell with `python train.py tags=\["imagenette","experiment_X"\]`.
 
 If no tags are provided, you will be asked to input them from command line:
 
@@ -514,15 +564,17 @@ Suggestions for improvements are always welcome!
 All PyTorch Lightning modules are dynamically instantiated from module paths specified in config. Example model config:
 
 ```yaml
-_target_: src.models.mnist_model.MNISTLitModule
-lr: 0.001
+_target_: src.models.classification_module.ClassificationLitModule
+num_classes: 10
+optimizer:
+  _target_: torch.optim.AdamW
+  _partial_: true
+  lr: 0.001
 net:
-  _target_: src.models.components.simple_dense_net.SimpleDenseNet
-  input_size: 784
-  lin1_size: 256
-  lin2_size: 256
-  lin3_size: 256
-  output_size: 10
+  _target_: timm.create_model
+  model_name: resnet18
+  pretrained: true
+  num_classes: 10
 ```
 
 Using this config we can instantiate the object with the following line:
@@ -536,7 +588,8 @@ This allows you to easily iterate over new models! Every time you create a new o
 Switch between models and datamodules with command line arguments:
 
 ```bash
-python train.py model=mnist
+python train.py experiment=segmentation_example
+python train.py model=segmentation data=segmentation_folder
 ```
 
 Example pipeline managing the instantiation logic: [src/train.py](src/train.py).
@@ -556,8 +609,8 @@ It determines how config is composed when simply executing command `python train
 # order of defaults determines the order in which configs override each other
 defaults:
   - _self_
-  - data: mnist.yaml
-  - model: mnist.yaml
+  - data: image_folder.yaml
+  - model: classification.yaml
   - callbacks: default.yaml
   - logger: null # set logger here or use command line (e.g. `python train.py logger=csv`)
   - trainer: default.yaml
@@ -568,9 +621,6 @@ defaults:
   # experiment configs allow for version control of specific hyperparameters
   # e.g. best hyperparameters for given model and datamodule
   - experiment: null
-
-  # config for hyperparameter optimization
-  - hparams_search: null
 
   # optional local config for machine/user specific settings
   # it's optional since it doesn't need to exist and is excluded from version control
@@ -619,45 +669,141 @@ For example, you can use them to version control best hyperparameters for each c
 ```yaml
 # @package _global_
 
+# image classification on Imagenette (10 ImageNet classes) with a pretrained timm resnet18
+# download the data first: `python scripts/download_example_data.py`
 # to execute this experiment run:
-# python train.py experiment=example
+# python src/train.py experiment=classification_example trainer=gpu
 
 defaults:
-  - override /data: mnist.yaml
-  - override /model: mnist.yaml
-  - override /callbacks: default.yaml
-  - override /trainer: default.yaml
+  - override /data: image_folder
+  - override /model: classification
+  - override /callbacks: default
+  - override /trainer: default
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
-tags: ["mnist", "simple_dense_net"]
+tags: ["imagenette", "resnet18"]
 
 seed: 12345
 
 trainer:
-  min_epochs: 10
+  min_epochs: 1
   max_epochs: 10
-  gradient_clip_val: 0.5
+
+data:
+  data_dir: ${paths.data_dir}/imagenette2-160
+  num_classes: 10
+  batch_size: 128
+  num_workers: 8
+  transforms:
+    image_size: 160
 
 model:
   optimizer:
-    lr: 0.002
+    lr: 0.001
   net:
-    lin1_size: 128
-    lin2_size: 256
-    lin3_size: 64
-
-data:
-  batch_size: 64
-
-logger:
-  wandb:
-    tags: ${tags}
-    group: "mnist"
+    model_name: resnet18
 ```
 
 </details>
+
+<br>
+
+## Augmentations
+
+Augmentations use [albumentations](https://github.com/albumentations-team/albumentations) and are defined entirely in config, in the [configs/data/transforms](configs/data/transforms) group. The pipelines are built by [build_transforms()](src/data/components/transforms.py) and applied jointly to images and masks.
+
+```yaml
+# configs/data/transforms/cls_default.yaml (shortened)
+image_size: 224
+
+train:
+  ops: # applied in order
+    crop:
+      _target_: albumentations.RandomResizedCrop
+      size: ["${data.transforms.image_size}", "${data.transforms.image_size}"]
+      scale: [0.35, 1.0]
+    hflip:
+      _target_: albumentations.HorizontalFlip
+      p: 0.5
+
+eval:
+  ops:
+    resize:
+      _target_: albumentations.SmallestMaxSize
+      max_size: ${data.transforms.image_size}
+
+post: # always appended after `ops`, for both train and eval
+  normalize:
+    _target_: albumentations.Normalize
+  to_tensor:
+    _target_: albumentations.pytorch.ToTensorV2
+
+compose: {} # optional kwargs for `albumentations.Compose`, e.g. `additional_targets`
+```
+
+Ops are stored in a mapping (not a list), so every op can be changed from the command line by its name:
+
+```bash
+# presets: cls_default, cls_strong, seg_default, none
+python src/train.py data/transforms=cls_strong
+
+python src/train.py '~data.transforms.train.ops.color'                 # remove an op
+python src/train.py data.transforms.train.ops.hflip=null               # disable an op
+python src/train.py data.transforms.train.ops.crop.scale=[0.5,1.0]     # tweak an op
+python src/train.py data.transforms.image_size=384                     # change the image size
+python src/train.py \
+  '+data.transforms.train.ops.blur={_target_: albumentations.GaussianBlur, p: 0.2}'  # add an op
+```
+
+To create a new preset, add a file to `configs/data/transforms/`. A preset can extend another one with a defaults list, see [cls_strong.yaml](configs/data/transforms/cls_strong.yaml).
+
+The resolved pipeline is saved with the rest of the config in `.hydra/config.yaml` of every run.
+
+> **Note**: `albumentations` is pinned to `2.0.8`, the last release of the MIT-licensed repository, which is now archived. Its maintained successor [AlbumentationsX](https://github.com/albumentations-team/AlbumentationsX) uses the same `import albumentations` but is licensed under AGPL-3.0 (or a commercial license). To switch, replace `albumentations==2.0.8` with `albumentationsx` in `requirements.txt`.
+
+<br>
+
+## Adapting To Your Project
+
+The classification and segmentation examples are deliberately minimal. Everything that usually changes between projects is in config:
+
+| What               | Classification                                                                | Segmentation                                                                    |
+| ------------------ | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| datamodule         | [image_folder_datamodule.py](src/data/image_folder_datamodule.py)             | [segmentation_folder_datamodule.py](src/data/segmentation_folder_datamodule.py) |
+| lightning module   | [classification_module.py](src/models/classification_module.py)               | [segmentation_module.py](src/models/segmentation_module.py)                     |
+| data config        | [image_folder.yaml](configs/data/image_folder.yaml)                           | [segmentation_folder.yaml](configs/data/segmentation_folder.yaml)               |
+| model config       | [classification.yaml](configs/model/classification.yaml)                      | [segmentation.yaml](configs/model/segmentation.yaml)                            |
+| network config     | [net/timm.yaml](configs/model/net/timm.yaml)                                  | [net/smp_unet.yaml](configs/model/net/smp_unet.yaml)                            |
+| augmentations      | [transforms/cls_default.yaml](configs/data/transforms/cls_default.yaml)       | [transforms/seg_default.yaml](configs/data/transforms/seg_default.yaml)         |
+| example experiment | [classification_example.yaml](configs/experiment/classification_example.yaml) | [segmentation_example.yaml](configs/experiment/segmentation_example.yaml)       |
+
+**If your data fits the expected layout**, you only need a new experiment config:
+
+- classification: `data_dir/train/<class_name>/*.jpg`, optionally `val/` and `test/` with the same class folders (without `val/`, `val_split` of the train images are used)
+- segmentation: `data_dir/images/<stem>.jpg` and `data_dir/masks/<stem>.png`, where mask pixel values are class indices (use `mask_offset` for 1-based masks and `ignore_index` for unlabeled pixels)
+
+```yaml
+# configs/experiment/my_experiment.yaml
+# @package _global_
+defaults:
+  - override /data: image_folder
+  - override /model: classification
+
+data:
+  data_dir: /path/to/my/dataset
+  num_classes: 5
+  test_subdir: test
+  transforms:
+    image_size: 384
+
+model:
+  net:
+    model_name: convnext_tiny
+```
+
+**If your data or task is different**, copy the closest datamodule/module and edit it. Both datamodules share batch-size-per-device logic and dataloaders through [BaseDataModule](src/data/base_datamodule.py), and both modules share optimizer/scheduler setup and `torch.compile` through [BaseLitModule](src/models/base_module.py), so a new one usually only needs `setup_datasets()` or the `*_step()` methods.
 
 <br>
 
@@ -665,8 +811,8 @@ logger:
 
 **Basic workflow**
 
-1. Write your PyTorch Lightning module (see [models/mnist_module.py](src/models/mnist_module.py) for example)
-2. Write your PyTorch Lightning datamodule (see [data/mnist_datamodule.py](src/data/mnist_datamodule.py) for example)
+1. Write your PyTorch Lightning module (see [models/classification_module.py](src/models/classification_module.py) for example)
+2. Write your PyTorch Lightning datamodule (see [data/image_folder_datamodule.py](src/data/image_folder_datamodule.py) for example)
 3. Write your experiment config, containing paths to model and datamodule
 4. Run training with chosen experiment config:
    ```bash
@@ -724,7 +870,7 @@ You can change this structure by modifying paths in [hydra configuration](config
 
 ## Experiment Tracking
 
-PyTorch Lightning supports many popular logging frameworks: [Weights&Biases](https://www.wandb.com/), [Neptune](https://neptune.ai/), [Comet](https://www.comet.ml/), [MLFlow](https://mlflow.org), [Tensorboard](https://www.tensorflow.org/tensorboard/).
+PyTorch Lightning supports many popular logging frameworks: [Weights&Biases](https://www.wandb.com/), [Comet](https://www.comet.com/), [MLFlow](https://mlflow.org), [Tensorboard](https://www.tensorflow.org/tensorboard/).
 
 These tools help you keep track of hyperparameters and output metrics and allow you to compare and visualize results. To use one of them simply complete its configuration in [configs/logger](configs/logger) and run:
 
@@ -736,7 +882,7 @@ You can use many of them at once (see [configs/logger/many_loggers.yaml](configs
 
 You can also write your own logger.
 
-Lightning provides convenient method for logging custom metrics from inside LightningModule. Read the [docs](https://pytorch-lightning.readthedocs.io/en/latest/extensions/logging.html#automatic-logging) or take a look at [MNIST example](src/models/mnist_module.py).
+Lightning provides convenient method for logging custom metrics from inside LightningModule. Read the [docs](https://pytorch-lightning.readthedocs.io/en/latest/extensions/logging.html#automatic-logging) or take a look at the [classification example](src/models/classification_module.py).
 
 <br>
 
@@ -759,9 +905,13 @@ Most of the implemented tests don't check for any specific output - they exist t
 
 Currently, the tests cover cases like:
 
-- running 1 train, val and test step
-- running 1 epoch on 1% of data, saving ckpt and resuming for the second epoch
-- running 2 epochs on 1% of data, with DDP simulated on CPU
+- running 1 train, val and test step for classification and segmentation
+- running 1 epoch, saving ckpt and resuming for the second epoch
+- running 2 epochs with DDP simulated on CPU
+- building every augmentation preset and overriding single ops from the command line
+- running a short Optuna search
+
+All tests run offline on tiny synthetic datasets generated in [tests/conftest.py](tests/conftest.py), so they don't need the example datasets or pretrained weights.
 
 And many others. You should be able to modify them easily for your use case.
 
@@ -771,60 +921,100 @@ There is also `@RunIf` decorator implemented, that allows you to run tests only 
 
 ## Hyperparameter Search
 
-You can define hyperparameter search by adding new config file to [configs/hparams_search](configs/hparams_search).
+Hyperparameter search is done with [Optuna](https://optuna.org/) in [src/tune.py](src/tune.py), configured by [configs/tune.yaml](configs/tune.yaml), which extends the training config. Every trial overrides some config values with sampled ones and runs `train()` in its own `logs/tune/runs/<date>/trials/<number>/` directory.
 
 <details>
-<summary><b>Show example hyperparameter search config</b></summary>
+<summary><b>Show hyperparameter search config</b></summary>
 
 ```yaml
 # @package _global_
 
-defaults:
-  - override /hydra/sweeper: optuna
+# hyperparameter search with Optuna on top of the training config
+# every trial runs `train()` with sampled values in `<output_dir>/trials/<number>/`
+#
+# example:
+# python src/tune.py experiment=classification_example optuna.n_trials=20
+#
+# only config values can be searched (e.g. `model.optimizer.lr`),
+# not config group choices (e.g. `model=...`)
 
-# choose metric which will be optimized by Optuna
-# make sure this is the correct name of some metric logged in lightning module!
+defaults:
+  - train
+  - _self_
+
+task_name: "tune"
+
+# metric logged in the lightning module which is optimized
+# e.g. "val/miou_best" for segmentation
 optimized_metric: "val/acc_best"
 
-# here we define Optuna hyperparameter search
-# it optimizes for value returned from function with @hydra.main decorator
-hydra:
-  sweeper:
-    _target_: hydra_plugins.hydra_optuna_sweeper.optuna_sweeper.OptunaSweeper
+# skip testing in every trial, evaluate the best trial afterwards with `src/eval.py`
+test: False
 
-    # 'minimize' or 'maximize' the objective
-    direction: maximize
+optuna:
+  # set a storage to persist the study and resume it later, e.g. "sqlite:///logs/optuna.db"
+  storage: null
+  study_name: null
 
-    # total number of runs that will be executed
-    n_trials: 20
+  # "minimize" or "maximize" the objective
+  direction: maximize
 
-    # choose Optuna hyperparameter sampler
-    # docs: https://optuna.readthedocs.io/en/stable/reference/samplers.html
-    sampler:
-      _target_: optuna.samplers.TPESampler
-      seed: 1234
-      n_startup_trials: 10 # number of random sampling runs before optimization starts
+  # number of trials and/or time budget in seconds
+  n_trials: 20
+  timeout: null
 
-    # define hyperparameter search space
-    params:
-      model.optimizer.lr: interval(0.0001, 0.1)
-      data.batch_size: choice(32, 64, 128, 256)
-      model.net.lin1_size: choice(64, 128, 256)
-      model.net.lin2_size: choice(64, 128, 256)
-      model.net.lin3_size: choice(32, 64, 128, 256)
+  # docs: https://optuna.readthedocs.io/en/stable/reference/samplers/index.html
+  sampler:
+    _target_: optuna.samplers.TPESampler
+    seed: 1234
+    n_startup_trials: 10 # number of random sampling runs before optimization starts
+
+  # docs: https://optuna.readthedocs.io/en/stable/reference/pruners.html
+  pruner: null
+
+  # search space: <name>: {key: <config key to override>, type: ..., ...}
+  # types: float/int with `low`, `high` (and optional `log`, `step`), categorical with `choices`
+  # change from command line by name, e.g. `optuna.params.lr.high=0.1` or `~optuna.params.batch_size`
+  params:
+    lr:
+      key: model.optimizer.lr
+      type: float
+      low: 1.0e-5
+      high: 1.0e-2
+      log: true
+    weight_decay:
+      key: model.optimizer.weight_decay
+      type: float
+      low: 1.0e-4
+      high: 1.0e-1
+      log: true
+    batch_size:
+      key: data.batch_size
+      type: categorical
+      choices: [32, 64, 128]
 ```
 
 </details>
 
-Next, execute it with: `python train.py -m hparams_search=mnist_optuna`
+```bash
+# run the search on top of an experiment config
+python src/tune.py experiment=classification_example optuna.n_trials=20
 
-Using this approach doesn't require adding any boilerplate to code, everything is defined in a single config file. The only necessary thing is to return the optimized metric value from the launch file.
+# change the search space from the command line by name
+python src/tune.py optuna.params.lr.high=0.1 '~optuna.params.batch_size'
 
-You can use different optimization frameworks integrated with Hydra, like [Optuna, Ax or Nevergrad](https://hydra.cc/docs/plugins/optuna_sweeper/).
+# segmentation logs a different metric
+python src/tune.py experiment=segmentation_example optimized_metric=val/miou_best
 
-The `optimization_results.yaml` will be available under `logs/task_name/multirun` folder.
+# persist the study in a database to resume it later (and to inspect it with `optuna-dashboard`)
+python src/tune.py optuna.storage=sqlite:///logs/optuna.db optuna.study_name=my_study
+```
 
-This approach doesn't support resuming interrupted search and advanced techniques like prunning - for more sophisticated search and workflows, you should probably write a dedicated optimization task (without multirun feature).
+The best values are saved to `best_params.yaml` in the run directory as `<config key>: <value>`, ready to be copied into an experiment config.
+
+> **Note**: Only config values can be searched (e.g. `model.optimizer.lr`), not config group choices (e.g. `model=...`). Pruning can be enabled with `optuna.pruner`, but needs a pruning callback reporting intermediate values to the trial, e.g. `PyTorchLightningPruningCallback` from [optuna-integration](https://github.com/optuna/optuna-integration).
+
+> **Note**: The old [Hydra Optuna Sweeper](https://hydra.cc/docs/plugins/optuna_sweeper/) plugin used by the upstream template is no longer maintained and requires `optuna<3`, so it was replaced by this script. Plain Hydra multirun (`python src/train.py -m model.optimizer.lr=0.001,0.01`) still works for grid sweeps.
 
 <br>
 
@@ -842,7 +1032,7 @@ Template comes with CI workflows implemented in Github Actions:
 
 Lightning supports multiple ways of doing distributed training. The most common one is DDP, which spawns separate process for each GPU and averages gradients between them. To learn about other approaches read the [lightning docs](https://lightning.ai/docs/pytorch/latest/advanced/speed.html).
 
-You can run DDP on mnist example with 4 GPUs like this:
+You can run DDP on the classification example with 4 GPUs like this:
 
 ```bash
 python train.py trainer=ddp
@@ -883,7 +1073,7 @@ some_param: ${data.some_param}
 Another approach is to access datamodule in LightningModule directly through Trainer:
 
 ```python
-# ./src/models/mnist_module.py
+# ./src/models/classification_module.py
 def on_train_start(self):
   self.some_param = self.trainer.datamodule.some_param
 ```
@@ -919,7 +1109,7 @@ conda update -n base -c defaults conda
 Create new conda environment:
 
 ```bash
-conda create -n myenv python=3.10
+conda create -n myenv python=3.12
 conda activate myenv
 ```
 
@@ -941,7 +1131,7 @@ Next, install hooks from [.pre-commit-config.yaml](.pre-commit-config.yaml):
 pre-commit install
 ```
 
-After that your code will be automatically reformatted on every new commit.
+After that your code will be automatically linted and reformatted with [ruff](https://docs.astral.sh/ruff/) on every new commit (rules are configured in `pyproject.toml`).
 
 To reformat all files in the project use command:
 
@@ -1099,13 +1289,13 @@ dvc init
 To start tracking a file or directory, use `dvc add`:
 
 ```bash
-dvc add data/MNIST
+dvc add data/imagenette2-160
 ```
 
-DVC stores information about the added file (or a directory) in a special .dvc file named data/MNIST.dvc, a small text file with a human-readable format. This file can be easily versioned like source code with Git, as a placeholder for the original data:
+DVC stores information about the added file (or a directory) in a special .dvc file named data/imagenette2-160.dvc, a small text file with a human-readable format. This file can be easily versioned like source code with Git, as a placeholder for the original data:
 
 ```bash
-git add data/MNIST.dvc data/.gitignore
+git add data/imagenette2-160.dvc data/.gitignore
 git commit -m "Add raw data"
 ```
 
@@ -1115,7 +1305,7 @@ git commit -m "Add raw data"
 <summary><b>Support installing project as a package</b></summary>
 
 It allows other people to easily use your modules in their own projects.
-Change name of the `src` folder to your project name and complete the `setup.py` file.
+Change name of the `src` folder to your project name and complete the `[project]` section of `pyproject.toml`.
 
 Now your project can be installed from local files:
 
@@ -1132,8 +1322,8 @@ pip install git+git://github.com/YourGithubName/your-repo-name.git --upgrade
 So any file can be easily imported into any other file like so:
 
 ```python
-from project_name.models.mnist_module import MNISTLitModule
-from project_name.data.mnist_datamodule import MNISTDataModule
+from project_name.models.classification_module import ClassificationLitModule
+from project_name.data.image_folder_datamodule import ImageFolderDataModule
 ```
 
 </details>
@@ -1248,7 +1438,7 @@ git clone https://github.com/YourGithubName/your-repo-name
 cd your-repo-name
 
 # [OPTIONAL] create conda environment
-conda create -n myenv python=3.9
+conda create -n myenv python=3.12
 conda activate myenv
 
 # install pytorch according to instructions

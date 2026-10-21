@@ -1,8 +1,4 @@
-# This workflow finds which files were changed, prints them,
-# and runs `pre-commit` on those files.
-
-# Inspired by the sktime library:
-# https://github.com/alan-turing-institute/sktime/blob/main/.github/workflows/test.yml
+# This workflow runs `pre-commit` on the files changed in a pull request.
 
 name: Code Quality PR
 
@@ -16,21 +12,16 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # needed to diff against the base branch
 
       - name: Set up Python
-        uses: actions/setup-python@v2
-
-      - name: Find modified files
-        id: file_changes
-        uses: trilom/file-changes-action@v1.2.4
+        uses: actions/setup-python@v7
         with:
-          output: " "
+          python-version: "3.12"
 
-      - name: List modified files
-        run: echo '${{ steps.file_changes.outputs.files}}'
-
-      - name: Run pre-commits
-        uses: pre-commit/action@v2.0.3
+      - name: Run pre-commits on changed files
+        uses: pre-commit/action@v3.0.1
         with:
-          extra_args: --files ${{ steps.file_changes.outputs.files}}
+          extra_args: --from-ref origin/${{ github.base_ref }} --to-ref HEAD

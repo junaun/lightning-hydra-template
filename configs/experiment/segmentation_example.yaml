@@ -1,0 +1,40 @@
+# @package _global_
+
+# semantic segmentation of the Oxford-IIIT Pet trimaps (pet / background / border)
+# with a Unet and a pretrained resnet34 encoder
+# download the data first: `python scripts/download_example_data.py`
+# to execute this experiment run:
+# python src/train.py experiment=segmentation_example trainer=gpu
+
+defaults:
+  - override /data: segmentation_folder
+  - override /model: segmentation
+  - override /callbacks: default
+  - override /trainer: default
+
+tags: ["oxford_pet", "unet", "resnet34"]
+
+seed: 12345
+
+trainer:
+  min_epochs: 1
+  max_epochs: 20
+
+data:
+  data_dir: ${paths.data_dir}/oxford-iiit-pet
+  num_classes: 3
+  batch_size: 16
+  num_workers: 8
+
+model:
+  net:
+    encoder_name: resnet34
+
+# segmentation logs `val/miou` instead of `val/acc`
+callbacks:
+  model_checkpoint:
+    monitor: "val/miou"
+    mode: "max"
+  early_stopping:
+    monitor: "val/miou"
+    mode: "max"

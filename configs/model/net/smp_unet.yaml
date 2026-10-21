@@ -1,0 +1,9 @@
+# segmentation_models_pytorch: https://smp.readthedocs.io/en/latest/models.html
+# swap architecture with e.g. `model.net._target_=segmentation_models_pytorch.FPN`
+# swap encoder with e.g. `model.net.encoder_name=efficientnet-b0`
+
+_target_: segmentation_models_pytorch.Unet
+encoder_name: resnet34
+encoder_weights: imagenet # set to null for random init
+in_channels: 3
+classes: ${model.num_classes}
