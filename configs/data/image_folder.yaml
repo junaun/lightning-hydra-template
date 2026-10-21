@@ -1,0 +1,22 @@
+# image classification from class-per-subfolder directories:
+# data_dir/{train,val,test}/<class_name>/*.jpg  (val and test are optional)
+
+defaults:
+  - transforms: cls_default # augmentation pipeline, see `configs/data/transforms/`
+  - _self_
+
+_target_: src.data.image_folder_datamodule.ImageFolderDataModule
+_recursive_: false # transforms are built inside the datamodule, see `build_transforms()`
+
+data_dir: ${paths.data_dir}/imagenette2-160 # run `python scripts/download_example_data.py`
+num_classes: 10
+train_subdir: train
+val_subdir: val # set to null to split `val_split` of the train images for validation
+test_subdir: null # set to null to test on the validation set
+val_split: 0.1
+seed: 42
+
+batch_size: 128 # Needs to be divisible by the number of devices (e.g., if in a distributed setup)
+num_workers: 4
+pin_memory: False
+persistent_workers: False

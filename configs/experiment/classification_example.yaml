@@ -1,0 +1,37 @@
+# @package _global_
+
+# image classification on Imagenette (10 ImageNet classes) with a pretrained timm resnet18
+# download the data first: `python scripts/download_example_data.py`
+# to execute this experiment run:
+# python src/train.py experiment=classification_example trainer=gpu
+
+defaults:
+  - override /data: image_folder
+  - override /model: classification
+  - override /callbacks: default
+  - override /trainer: default
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+tags: ["imagenette", "resnet18"]
+
+seed: 12345
+
+trainer:
+  min_epochs: 1
+  max_epochs: 10
+
+data:
+  data_dir: ${paths.data_dir}/imagenette2-160
+  num_classes: 10
+  batch_size: 128
+  num_workers: 8
+  transforms:
+    image_size: 160
+
+model:
+  optimizer:
+    lr: 0.001
+  net:
+    model_name: resnet18

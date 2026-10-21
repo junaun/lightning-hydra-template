@@ -1,0 +1,24 @@
+# `cls_default` with stronger augmentation, select with `data/transforms=cls_strong`
+
+defaults:
+  - cls_default
+  - _self_
+
+train:
+  ops:
+    affine:
+      _target_: albumentations.Affine
+      scale: [0.9, 1.1]
+      translate_percent: [-0.05, 0.05]
+      rotate: [-15, 15]
+      p: 0.5
+    blur:
+      _target_: albumentations.GaussianBlur
+      sigma_limit: [0.1, 2.0]
+      p: 0.2
+    dropout:
+      _target_: albumentations.CoarseDropout
+      num_holes_range: [1, 4]
+      hole_height_range: [0.05, 0.2]
+      hole_width_range: [0.05, 0.2]
+      p: 0.5

@@ -1,0 +1,7 @@
+# any timm model: https://huggingface.co/docs/timm/models
+# e.g. `model.net.model_name=convnext_tiny` or `model.net.model_name=vit_small_patch16_224`
+
+_target_: timm.create_model
+model_name: resnet18
+pretrained: true # download imagenet weights
+num_classes: ${model.num_classes}

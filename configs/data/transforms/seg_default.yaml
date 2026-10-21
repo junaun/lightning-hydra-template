@@ -1,0 +1,32 @@
+# albumentations pipeline for segmentation, ops are applied jointly to the image and the mask
+# see `cls_default.yaml` for how to add, remove or tweak ops from the command line
+
+image_size: 256 # most segmentation models need a size divisible by 32
+
+train:
+  ops:
+    crop:
+      _target_: albumentations.RandomResizedCrop
+      size: ["${data.transforms.image_size}", "${data.transforms.image_size}"]
+      scale: [0.5, 1.0]
+    hflip:
+      _target_: albumentations.HorizontalFlip
+      p: 0.5
+    brightness_contrast:
+      _target_: albumentations.RandomBrightnessContrast
+      p: 0.3
+
+eval:
+  ops:
+    resize:
+      _target_: albumentations.Resize
+      height: ${data.transforms.image_size}
+      width: ${data.transforms.image_size}
+
+post:
+  normalize:
+    _target_: albumentations.Normalize # imagenet statistics by default
+  to_tensor:
+    _target_: albumentations.pytorch.ToTensorV2
+
+compose: {}

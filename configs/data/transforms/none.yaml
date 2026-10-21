@@ -1,0 +1,20 @@
+# no augmentation: only resize, normalize and convert to tensor (works for both tasks)
+
+image_size: 224
+
+train:
+  ops:
+    resize:
+      _target_: albumentations.Resize
+      height: ${data.transforms.image_size}
+      width: ${data.transforms.image_size}
+
+eval: ${.train}
+
+post:
+  normalize:
+    _target_: albumentations.Normalize # imagenet statistics by default
+  to_tensor:
+    _target_: albumentations.pytorch.ToTensorV2
+
+compose: {}
