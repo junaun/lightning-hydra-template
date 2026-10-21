@@ -2,7 +2,7 @@
 
 # Lightning-Hydra-Template
 
-[![python](https://img.shields.io/badge/-Python_3.11_%7C_3.12_%7C_3.13-blue?logo=python&logoColor=white)](https://www.python.org/)
+[![python](https://img.shields.io/badge/-Python_3.12_%7C_3.13-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![pytorch](https://img.shields.io/badge/PyTorch_2.6+-ee4c2c?logo=pytorch&logoColor=white)](https://pytorch.org/get-started/locally/)
 [![lightning](https://img.shields.io/badge/-Lightning_2.5+-792ee5?logo=lightning&logoColor=white)](https://lightning.ai/docs/pytorch/stable/)
 [![hydra](https://img.shields.io/badge/Config-Hydra_1.3-89b8cd)](https://hydra.cc/)
@@ -158,7 +158,7 @@ cd lightning-hydra-template
 conda env create -f environment.yaml
 conda activate lht
 
-# or, in any existing python>=3.11 environment
+# or, in any existing python>=3.12 environment
 pip install -r requirements.txt
 
 # [OPTIONAL] install the project as a package (adds `train_command`, `eval_command`, `tune_command`)

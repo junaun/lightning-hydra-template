@@ -7,7 +7,7 @@ name = "src"
 version = "0.0.1"
 description = "Describe Your Cool Project"
 authors = [{ name = "" }]
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = ["lightning", "hydra-core"]
 
 [project.urls]
@@ -24,7 +24,7 @@ include = ["src*"]
 
 [tool.ruff]
 line-length = 99
-target-version = "py311"
+target-version = "py312"
 extend-exclude = ["logs", "data"]
 
 [tool.ruff.lint]
