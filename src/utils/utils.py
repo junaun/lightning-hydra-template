@@ -1,7 +1,9 @@
 import warnings
+from collections.abc import Callable
 from importlib.util import find_spec
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any
 
+import torch
 from omegaconf import DictConfig
 
 from src.utils import pylogger, rich_utils
@@ -16,6 +18,7 @@ def extras(cfg: DictConfig) -> None:
         - Ignoring python warnings
         - Setting tags from command line
         - Rich config printing
+        - Setting float32 matmul precision
 
     :param cfg: A DictConfig object containing the config tree.
     """
@@ -38,6 +41,13 @@ def extras(cfg: DictConfig) -> None:
     if cfg.extras.get("print_config"):
         log.info("Printing config tree with Rich! <cfg.extras.print_config=True>")
         rich_utils.print_config_tree(cfg, resolve=True, save_to_file=True)
+
+    # trade off float32 matmul precision for speed (e.g. TF32 on NVIDIA GPUs)
+    if cfg.extras.get("matmul_precision"):
+        log.info(
+            f"Setting float32 matmul precision! <cfg.extras.matmul_precision={cfg.extras.matmul_precision}>"
+        )
+        torch.set_float32_matmul_precision(cfg.extras.matmul_precision)
 
 
 def task_wrapper(task_func: Callable) -> Callable:
@@ -62,7 +72,7 @@ def task_wrapper(task_func: Callable) -> Callable:
     :return: The wrapped task function.
     """
 
-    def wrap(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    def wrap(cfg: DictConfig) -> tuple[dict[str, Any], dict[str, Any]]:
         # execute the task
         try:
             metric_dict, object_dict = task_func(cfg=cfg)
@@ -95,7 +105,7 @@ def task_wrapper(task_func: Callable) -> Callable:
     return wrap
 
 
-def get_metric_value(metric_dict: Dict[str, Any], metric_name: Optional[str]) -> Optional[float]:
+def get_metric_value(metric_dict: dict[str, Any], metric_name: str | None) -> float | None:
     """Safely retrieves value of the metric logged in LightningModule.
 
     :param metric_dict: A dict containing metric values.

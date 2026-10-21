@@ -6,3 +6,7 @@ enforce_tags: True
 
 # pretty print config tree at the start of the run using Rich library
 print_config: True
+
+# precision of float32 matrix multiplications, "high" enables TF32 on recent NVIDIA GPUs
+# https://pytorch.org/docs/stable/generated/torch.set_float32_matmul_precision.html
+matmul_precision: high
